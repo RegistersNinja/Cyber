@@ -54,28 +54,37 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
     char response[max_response_size];
     printf("Sending response\n");
     ///////////////////
-    int response_length = sprintf(response,
+    
+    char* date_str = (char*)malloc(64); 
+    time_t t = time(NULL);
+    struct tm *lt = localtime(&t);
+    strftime(date_str, 64, "%a, %d %b %Y %H:%M:%S", lt);
+    
+    int header_length = sprintf(response,
     "%s\r\n"
     "Date: %s\r\n"
     "Connection: close\r\n"
     "Content-Length: %d\r\n"
-    "Content-Type: %s\r\n\r\n"
-    "%s",
-    header, 
-    time, 
+    "Content-Type: %s\r\n\r\n",
+    header,
+    date_str,
     content_length,
-    content_type,
-    body);
-    ///////////////////
+    content_type);
 
-    // Send it all!
+    int response_length = header_length+content_length;
+    if (response_length >= max_response_size) {
+        fprintf(stderr, "Response exceeds maximum size\n");
+        return -1;
+    }
+    memcpy(response+header_length,body,content_length);
     int rv = send(fd, response, response_length, 0);
-
     if (rv < 0) {
         perror("send");
+        return -1;
     }
+    return rv;   
 
-    return rv;
+    ///////////////////
 }
 
 
@@ -137,9 +146,15 @@ void resp_404(int fd)
 void get_file(int fd, struct cache *cache, char *request_path)
 {
     ///////////////////
+
+    printf("In get_file\n");
     struct file_data* requested_file;
     requested_file = file_load(request_path);
-    
+    char *content_type = mime_type_get(request_path);
+    printf("files size is: %d\n",requested_file->size);
+    printf("files content is: %s\n",requested_file->data);
+    int sr = send_response(fd, "HTTP/1.1 200 OK", content_type,requested_file->data, requested_file->size);
+
     ///////////////////
 }
 
@@ -171,8 +186,8 @@ void handle_http_request(int fd, struct cache *cache)
         perror("recv");
         return;
     }
-
     ///////////////////
+    
     char method[10],path[50];
     sscanf(request,"%s %s",method, path);
     printf("The method: %s\nThe path: %s\n",method,path);
@@ -185,8 +200,9 @@ void handle_http_request(int fd, struct cache *cache)
         }
         else 
         {
-            char root_path = "./serverroot";
+            char root_path[] = "./serverroot";
             strcat(root_path,path);
+            printf("Serving file: %s\n",root_path);
             get_file(fd,cache,root_path);
         }
     }

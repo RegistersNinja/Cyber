@@ -1,6 +1,3 @@
-# What is that?
-This is my implementation of [Simple Web Server in C](https://github.com/bloominstituteoftechnology/C-Web-Server/tree/master) from this repo. All credit goes to them, and this is pretty nice project.
-
 # A Simple Web Server in C
 
 In this project, we'll finish the implementation of a web server in C.
