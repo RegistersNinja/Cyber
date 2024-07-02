@@ -123,7 +123,22 @@ void cache_free(struct cache *cache)
 void cache_put(struct cache *cache, char *path, char *content_type, void *content, int content_length)
 {
     ///////////////////
-    // IMPLEMENT ME! //
+    struct cache_entry* new_entry = alloc_entry(path,content_type,content,content_length);
+    new_entry->next = cache->head;
+    cache->head = new_entry;
+    hashtable_put(cache->index,path,content);
+    if (cache->cur_size == cache->max_size)
+    {
+        struct cache_entry* to_remove =  &(cache->tail);
+        hashtable_delete(cache->index,to_remove->path);
+        cache->tail=cache->tail->prev;
+        cache_free(to_remove);
+        free(to_remove);
+    }
+    else 
+    {
+        cache->cur_size +=1;
+    }    
     ///////////////////
 }
 

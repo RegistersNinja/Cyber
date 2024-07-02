@@ -1,3 +1,6 @@
+# What is that?
+This project is my implementation of [C-Web-Server](https://github.com/bloominstituteoftechnology/C-Web-Server/tree/master) excelent C HTTP web server. All credits goes to them.
+
 # A Simple Web Server in C
 
 In this project, we'll finish the implementation of a web server in C.
