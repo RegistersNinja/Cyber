@@ -10,7 +10,24 @@
 struct cache_entry *alloc_entry(char *path, char *content_type, void *content, int content_length)
 {
     ///////////////////
-    // IMPLEMENT ME! //
+    struct cache_entry *new_entry = malloc(sizeof(struct cache_entry));
+    
+    int size = strlen(path) + 1;
+    new_entry->path = calloc(1, size);
+    new_entry->path = strncpy(new_entry->path, path, size);
+
+    size = sizeof(*content_type) * strlen(content_type) + 1;
+    new_entry->content_type = calloc(1, size);
+    new_entry->content_type = strncpy(new_entry->content_type, content_type, size);
+
+    new_entry->content_length = content_length;
+
+    // Copy content into entry
+    size = content_length;
+    new_entry->content = calloc(1, size);
+    new_entry->content = memcpy(new_entry->content, content, size);
+
+    return new_entry;
     ///////////////////
 }
 
@@ -20,7 +37,10 @@ struct cache_entry *alloc_entry(char *path, char *content_type, void *content, i
 void free_entry(struct cache_entry *entry)
 {
     ///////////////////
-    // IMPLEMENT ME! //
+    free(entry->path);
+    free(entry->content_type);
+    free(entry->content);
+    free(entry);
     ///////////////////
 }
 
@@ -92,7 +112,14 @@ struct cache_entry *dllist_remove_tail(struct cache *cache)
 struct cache *cache_create(int max_size, int hashsize)
 {
     ///////////////////
-    // IMPLEMENT ME! //
+    struct cache* cache = malloc(sizeof(struct cache));
+    cache->head = NULL;
+    cache->tail = NULL;
+    cache->cur_size = 0;
+    cache->max_size = max_size;
+    cache->index = hashtable_create(hashsize, NULL);
+
+    return cache;
     ///////////////////
 }
 
@@ -123,22 +150,17 @@ void cache_free(struct cache *cache)
 void cache_put(struct cache *cache, char *path, char *content_type, void *content, int content_length)
 {
     ///////////////////
-    struct cache_entry* new_entry = alloc_entry(path,content_type,content,content_length);
-    new_entry->next = cache->head;
-    cache->head = new_entry;
-    hashtable_put(cache->index,path,content);
-    if (cache->cur_size == cache->max_size)
+    struct cache_entry* new_entry = alloc_entry(path, content_type, content,
+                                                content_length);
+    dllist_insert_head(cache, new_entry);                                            
+    hashtable_put(cache->index,new_entry->path,new_entry);
+    if (cache->cur_size >= cache->max_size)
     {
-        struct cache_entry* to_remove =  &(cache->tail);
-        hashtable_delete(cache->index,to_remove->path);
-        cache->tail=cache->tail->prev;
-        cache_free(to_remove);
-        free(to_remove);
+        hashtable_delete(cache->index,cache->tail->path);
+        free_entry(dllist_remove_tail(cache));
     }
-    else 
-    {
-        cache->cur_size +=1;
-    }    
+    
+    cache->cur_size +=1;
     ///////////////////
 }
 
@@ -148,6 +170,34 @@ void cache_put(struct cache *cache, char *path, char *content_type, void *conten
 struct cache_entry *cache_get(struct cache *cache, char *path)
 {
     ///////////////////
-    // IMPLEMENT ME! //
+    struct cache_entry* is_found = hashtable_get(cache->index,path);
+    if(is_found == NULL)
+        return NULL;
+    else 
+    {
+        //If we found the head already
+        if(is_found == cache->head)
+            return cache->head;
+        //If we found the tail
+        if(is_found->next == NULL)
+            {
+                is_found->next = cache->head;
+                cache->head->prev = is_found;
+                (is_found->prev)->next = NULL;
+                cache->tail = is_found->prev;
+                is_found->prev = NULL;
+                cache->head = is_found;
+                return cache->head;
+            }
+        //If it's in the middle
+        (is_found->prev)->next = is_found->next;
+        (is_found->next)->prev = is_found->prev;
+        is_found->next = cache->head;
+        is_found->prev = NULL;
+        (cache->head)->prev = is_found;
+        cache->head = is_found;
+
+        return cache->head;
+    }
     ///////////////////
 }

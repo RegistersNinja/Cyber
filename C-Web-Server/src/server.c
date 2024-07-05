@@ -34,6 +34,8 @@
 #include "mime.h"
 #include "cache.h"
 
+
+
 #define PORT "3490"  // the port users will be connecting to
 
 #define SERVER_FILES "./serverfiles"
@@ -187,10 +189,17 @@ void handle_http_request(int fd, struct cache *cache)
         return;
     }
     ///////////////////
-    
     char method[10],path[50];
     sscanf(request,"%s %s",method, path);
     printf("The method: %s\nThe path: %s\n",method,path);
+    void* is_in_cache = cache_get(cache,path);
+    if(is_in_cache != NULL)
+        {
+            printf("Serving file from cache: %s\n",path);
+            get_file(fd,cache,path);
+
+            return;
+        }
     if(strcmp(&method, "GET")==0)
     {
         if(strcmp(&path, "/d20")==0)
